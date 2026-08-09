@@ -18,6 +18,27 @@ npx expo start
 Scan the QR code with **Expo Go** on a physical iPhone or Android phone. Nothing
 in the app needs a custom dev client.
 
+- **iPhone** — scan with the built-in Camera app, then tap the banner.
+- **Android** — scan from inside Expo Go, using *Scan QR code*.
+
+Phone and computer must be on the same Wi-Fi. If the scan hangs on
+"Downloading", use `npx expo start --tunnel` instead — slower to start, but it
+ignores your network.
+
+### The SDK version is pinned on purpose
+
+This project targets **Expo SDK 54** because that is what the Expo Go build in
+the iOS App Store supports. It is not the newest SDK.
+
+**Do not upgrade it** without first checking which SDK the App Store's Expo Go
+is on. Running `npx expo install expo@latest --fix` will produce a project that
+Expo Go refuses to open with a version-mismatch error, which is exactly the
+failure you do not want in front of an audience. The app code itself is not
+SDK-specific — the pin is entirely about what Expo Go can load.
+
+`.npmrc` sets `legacy-peer-deps=true`. Expo's own dependency graph has peer
+conflicts across the React 19 packages; without it a plain `npm install` fails.
+
 ```bash
 npm run ios       # simulator
 npm run android   # emulator
