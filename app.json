@@ -38,10 +38,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#FFF7EF"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://localhost:3000"
     }
   }
 }

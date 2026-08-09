@@ -1,8 +1,9 @@
 # ModiModi
 
 A demo-ready MVP of a two-sided dog-walking marketplace for Tbilisi. One React
-Native codebase, iOS and Android, running in Expo Go. Every screen is driven by
-local mock data — there is no backend, no auth and no payments.
+Native codebase, iOS and Android, running in Expo Go, with a NestJS/Postgres API
+in `server/`. Authentication is real; the rest of the screens are still driven
+by local mock data. No payments.
 
 All interface copy is Georgian. The wordmark stays Latin.
 
@@ -93,16 +94,37 @@ offline — nothing else needs to change.
 splash screen is held until the font is ready so Georgian never flashes as tofu.
 Verified rendering on both platforms — no missing glyphs.
 
+## Talking to the API
+
+The backend lives in `server/` and has its own README-worthy detail in
+`docs/BUILD_PROMPT.md`. To run both:
+
+```bash
+cd server && npm run dev     # API on :3000
+npx expo start               # app, in another terminal
+```
+
+`app.json` → `extra.apiUrl` points the app at the API. It defaults to
+`http://localhost:3000`, which works in a simulator and in the browser.
+
+**On a physical phone, `localhost` is the phone.** Change `extra.apiUrl` to this
+machine's LAN address — `http://192.168.x.x:3000` — and add that origin to
+`CORS_ORIGINS` in `server/.env`.
+
+Sign in with any seeded account, for example `nino@modimodi.ge` with the
+password `Password123!`.
+
 ## What is mocked vs real
 
 | Area | Status |
 | --- | --- |
-| Walkers, dogs, requests, bookings, chats | Mock data in `data/mock.ts` |
+| Authentication (register, login, refresh, logout) | **Real** — server-backed, tokens in the device keychain |
+| Walkers, dogs, requests, bookings, chats | Mock data in `data/mock.ts` — moves to the API in Phase 3 |
 | Role switch, availability, accept/decline, bookings, chat sending, ratings | **Real** — held in zustand, live for the session |
 | Booking confirm | Real state change behind a 900 ms simulated request |
 | Map | Drawn with `react-native-svg`, not a real map (see below) |
 | Walk tracking | `Animated` interpolation along a fixed route — no GPS |
-| Payments, auth, notifications, backend | Not present |
+| Payments, notifications, live GPS | Not present |
 
 State lives in memory only. Reloading the app resets it to the seed data — which
 is what you want between demo runs.

@@ -8,15 +8,25 @@ decision.
 
 ## Phase 2 — Authentication (server side)
 
-### The app side of Phase 2 is not built
+### The app side is built, but only verified in a browser
 
-The server is complete and tested; **the Expo app still has no login screen and
-still talks to no API.** Outstanding from the phase brief: `expo-secure-store`,
-TanStack Query, axios, the single-flight refresh queue, `app/(auth)/login.tsx`
-and `register.tsx`, and gating `app/_layout.tsx` on auth status. Until that
-lands, these Definition-of-Done items are unmet: register/login from a real
-device, staying logged in across an app restart, and the four-concurrent-401s
-test.
+Login, registration, secure token storage, the single-flight refresh queue and
+auth gating are all in place, and the whole loop was exercised against the
+running API: sign in, reload and stay signed in, `/me` renders the real user,
+sign out returns to the login screen.
+
+**That verification was in Chrome, not on a phone.** The Definition of Done asks
+for a real device, which needs `extra.apiUrl` pointed at this machine's LAN
+address instead of `localhost` — a phone's `localhost` is the phone. Until
+someone runs it on hardware, the keychain path (`expo-secure-store`) is
+unexercised: the browser run used the localStorage fallback.
+
+### Tokens fall back to localStorage on web
+
+`src/api/token-storage.ts` uses `expo-secure-store` on iOS and Android and
+`localStorage` in a browser, because there is no secure store on the web. Web is
+a layout-checking target here, not a shipping one. If it ever ships, this is the
+line to revisit — localStorage is readable by any script on the origin.
 
 ### The common-password list is 10,000 entries, not the 1,000 the brief asked for
 

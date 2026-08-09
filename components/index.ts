@@ -20,5 +20,6 @@ export type { Segment } from './SegmentedControl';
 export { Sheet } from './Sheet';
 export { Skeleton, WalkerCardSkeleton } from './Skeleton';
 export { StatusDot } from './StatusDot';
+export { TextField } from './TextField';
 export { Toast } from './Toast';
 export { WalkerCard } from './WalkerCard';

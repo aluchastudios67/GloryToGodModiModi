@@ -11,6 +11,7 @@ import {
 } from '../../components';
 import { PHOTOS, myDogs } from '../../data/mock';
 import { Role, useAppStore } from '../../store/useAppStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { colors, pressed, spacing, type } from '../../theme';
 
 const ROLES = [
@@ -29,6 +30,8 @@ export default function ProfileScreen() {
   const role = useAppStore((s) => s.role);
   const setRole = useAppStore((s) => s.setRole);
   const showToast = useAppStore((s) => s.showToast);
+  const signOut = useAuthStore((s) => s.signOut);
+  const me = useAuthStore((s) => s.user);
 
   const switchRole = (next: Role) => {
     setRole(next);
@@ -46,7 +49,7 @@ export default function ProfileScreen() {
         <View style={styles.userRow}>
           <Avatar source={PHOTOS.me} size={62} verified />
           <View style={styles.userText}>
-            <Text style={styles.userName}>ლევან ხ.</Text>
+            <Text style={styles.userName}>{me?.name ?? 'ლევან ხ.'}</Text>
             <Text style={styles.userMeta}>ვაკე, თბილისი</Text>
           </View>
         </View>
@@ -85,7 +88,11 @@ export default function ProfileScreen() {
         {SETTINGS.map((item, index) => (
           <Pressable
             key={item.label}
-            onPress={() => showToast('დემოში მიუწვდომელია', 'neutral')}
+            onPress={() =>
+              item.label === 'გასვლა'
+                ? void signOut()
+                : showToast('დემოში მიუწვდომელია', 'neutral')
+            }
             accessibilityRole="button"
             accessibilityLabel={item.label}
             style={({ pressed: p }) => [
