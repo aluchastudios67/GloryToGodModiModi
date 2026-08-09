@@ -78,6 +78,18 @@ const trustProxy = z
   .enum(['true', 'false'])
   .transform((value) => value === 'true');
 
+/**
+ * 32 bytes, base64. Validated at boot rather than at first use — discovering a
+ * malformed encryption key when someone saves a door code is far worse than
+ * discovering it on deploy.
+ */
+const encryptionKey = z
+  .string()
+  .min(1)
+  .refine((value) => Buffer.from(value, 'base64').length === 32, {
+    message: 'must be 32 bytes, base64 encoded (generate: npm run keygen)',
+  });
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(NODE_ENVS),
   PORT: z.coerce.number().int().min(1).max(65_535),
@@ -85,6 +97,7 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(LOG_LEVELS),
   CORS_ORIGINS: corsOrigins,
   TRUST_PROXY: trustProxy,
+  ENCRYPTION_KEY: encryptionKey,
 });
 
 export type Env = z.infer<typeof envSchema>;

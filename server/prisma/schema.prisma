@@ -1,8 +1,17 @@
-// Phase 0: datasource and generator only. The domain model arrives in Phase 1.
+// ModiModi domain model.
 //
-// Nothing here defines a table yet — this exists so `prisma generate` produces
-// a client the health check can run `SELECT 1` through, proving the connection
-// path works before any schema depends on it.
+// Field names deliberately track `data/mock.ts` wherever the demo already had a
+// good one, so a reviewer can hold both files side by side.
+//
+// Two rules this schema exists to enforce, rather than hope for:
+//   - Money is Int, in tetri. 1 GEL = 100 tetri. No floats anywhere.
+//   - Times are timestamptz. The demo's "ხვალ, 09:30" is display; the moment a
+//     formatted string enters the database you have lost sorting, filtering and
+//     reminders.
+//
+// Several constraints cannot be expressed in Prisma and live in hand-written
+// SQL in the migration: the walker overlap EXCLUDE, the money CHECKs, the
+// stars CHECK, the partial unique index on email, and the endsAt trigger.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,4 +20,298 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+/// Seven states, not the demo's three. The demo never had to represent a
+/// request the walker simply ignored.
+enum BookingStatus {
+  REQUESTED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DECLINED
+  EXPIRED
+}
+
+/// Ships with one value. Payments add values here and a Payment table; the
+/// booking state machine does not change.
+enum PaymentStatus {
+  NOT_REQUIRED
+}
+
+/// Who acted. SYSTEM covers cron expiry and anything else with no human behind it.
+enum ActorRole {
+  OWNER
+  WALKER
+  SYSTEM
+}
+
+/// One person, two capabilities. A dog owner at 09:00 is a walker at 18:00, so
+/// there are not two user types — there are two flags and an optional profile.
+model User {
+  id           String    @id @default(cuid())
+  /// citext: nobody thinks Nino@ and nino@ are different accounts.
+  email        String    @db.Citext
+  passwordHash String
+  name         String
+  /// An R2 object key, never a URL. The CDN host belongs in config, not in rows.
+  avatarKey    String?
+  phone        String?   @unique
+  isOwner      Boolean   @default(true)
+  isWalker     Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+  /// Soft delete. A walker with completed bookings can never be hard-deleted:
+  /// the other party's history would develop holes.
+  deletedAt    DateTime? @db.Timestamptz(3)
+
+  walkerProfile         WalkerProfile?
+  dogs                  Dog[]
+  addresses             Address[]
+  bookingsAsOwner       Booking[]      @relation("BookingOwner")
+  bookingsAsWalker      Booking[]      @relation("BookingWalker")
+  conversationsAsOwner  Conversation[] @relation("ConversationOwner")
+  conversationsAsWalker Conversation[] @relation("ConversationWalker")
+  messages              Message[]
+  reviewsWritten        Review[]       @relation("ReviewAuthor")
+  reviewsReceived       Review[]       @relation("ReviewSubject")
+  refreshTokens         RefreshToken[]
+  bookingEvents         BookingEvent[]
+
+  @@index([deletedAt])
+}
+
+model WalkerProfile {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio            String
+  price30Tetri   Int
+  /// Not a boolean. You will want to know when verification happened, and a
+  /// timestamp answers "is verified" just as well.
+  verifiedAt     DateTime? @db.Timestamptz(3)
+  isAvailableNow Boolean   @default(false)
+  /// Denormalised, recomputed in the same transaction as a new review.
+  /// Never computed on read.
+  ratingAvg      Decimal   @default(0) @db.Decimal(3, 2)
+  ratingCount    Int       @default(0)
+  districts      String[]
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([isAvailableNow])
+  @@index([price30Tetri])
+  @@index([ratingAvg])
+}
+
+model Dog {
+  id        String    @id @default(cuid())
+  ownerId   String
+  owner     User      @relation(fields: [ownerId], references: [id])
+  name      String
+  breed     String
+  /// A real date. The demo's "3 წლის" is a rendering of this, not a fact to store.
+  birthDate DateTime  @db.Date
+  photoKey  String?
+  notes     String?
+  sizeKg    Int?
+  deletedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+
+  bookings Booking[]
+
+  @@index([ownerId])
+}
+
+model Address {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label    String
+  district String
+  street   String
+
+  /// Door codes are the most sensitive field here — more than passwords, which
+  /// are at least only hashed. Stored as AES-256-GCM parts; see common/crypto.ts.
+  /// Never logged, never returned in a DTO.
+  entranceCodeCiphertext String?
+  entranceCodeIv         String?
+  entranceCodeTag        String?
+
+  /// Populated by nothing in this build. They exist so the location phase is a
+  /// backfill rather than a migration.
+  latitude  Decimal? @db.Decimal(9, 6)
+  longitude Decimal? @db.Decimal(9, 6)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  bookings Booking[]
+
+  @@index([userId])
+}
+
+model Booking {
+  id        String @id @default(cuid())
+  ownerId   String
+  walkerId  String
+  dogId     String
+  addressId String
+
+  scheduledFor DateTime @db.Timestamptz(3)
+  /// Derived from scheduledFor + durationMin, maintained by a database trigger.
+  ///
+  /// It exists because the overlap EXCLUDE constraint needs an immutable
+  /// expression, and `timestamptz + interval` is STABLE — Postgres rejects it in
+  /// a generated column or an index. Two plain timestamps give an immutable
+  /// tstzrange. The trigger keeps it honest so the service cannot drift.
+  endsAt      DateTime @db.Timestamptz(3)
+  durationMin Int
+
+  status BookingStatus @default(REQUESTED)
+
+  /// What the owner pays. Always recomputed server-side; never read from a body.
+  priceTetri      Int
+  serviceFeeTetri Int
+  /// What the walker receives. The database enforces price - fee = payout.
+  payoutTetri     Int
+  paymentStatus   PaymentStatus @default(NOT_REQUIRED)
+
+  note String?
+
+  acceptedAt   DateTime?  @db.Timestamptz(3)
+  startedAt    DateTime?  @db.Timestamptz(3)
+  completedAt  DateTime?  @db.Timestamptz(3)
+  cancelledAt  DateTime?  @db.Timestamptz(3)
+  cancelledBy  ActorRole?
+  cancelReason String?
+
+  /// A double-tap on a flaky connection must not create two walks.
+  idempotencyKey String? @unique
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  owner   User    @relation("BookingOwner", fields: [ownerId], references: [id])
+  walker  User    @relation("BookingWalker", fields: [walkerId], references: [id])
+  dog     Dog     @relation(fields: [dogId], references: [id])
+  address Address @relation(fields: [addressId], references: [id])
+
+  events        BookingEvent[]
+  review        Review?
+  photos        WalkPhoto[]
+  conversations Conversation[]
+
+  @@index([walkerId, status])
+  @@index([ownerId, status])
+  @@index([status, scheduledFor])
+  @@index([dogId])
+  @@index([addressId])
+}
+
+/// Append-only audit log. Every status change writes one row in the same
+/// transaction as the change. When a walk is disputed in four months, this is
+/// the only thing that will settle it.
+model BookingEvent {
+  id          String         @id @default(cuid())
+  bookingId   String
+  booking     Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  /// Null on the row that records creation.
+  fromStatus  BookingStatus?
+  toStatus    BookingStatus
+  /// Null when the actor was SYSTEM.
+  actorUserId String?
+  actor       User?          @relation(fields: [actorUserId], references: [id])
+  reason      String?
+  createdAt   DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@index([bookingId, createdAt])
+}
+
+/// A conversation outlives the booking that created it, hence the nullable
+/// bookingId and the uniqueness on the pair of people.
+model Conversation {
+  id            String    @id @default(cuid())
+  ownerId       String
+  walkerId      String
+  bookingId     String?
+  lastMessageAt DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  owner    User      @relation("ConversationOwner", fields: [ownerId], references: [id])
+  walker   User      @relation("ConversationWalker", fields: [walkerId], references: [id])
+  booking  Booking?  @relation(fields: [bookingId], references: [id])
+  messages Message[]
+
+  @@unique([ownerId, walkerId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  /// Plain text only. Escaping is the renderer's job; storing markup is how you
+  /// get an injection bug in the dashboard you have not built yet.
+  body           String       @db.VarChar(2000)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  readAt         DateTime?    @db.Timestamptz(3)
+
+  @@index([conversationId, createdAt(sort: Desc)])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  /// Unique: one review per booking, enforced by the database. A read-then-write
+  /// check in a service is a race.
+  bookingId String   @unique
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  authorId  String
+  subjectId String
+  /// 1..5, enforced by a CHECK constraint in the migration.
+  stars     Int
+  body      String?  @db.VarChar(1000)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  author  User @relation("ReviewAuthor", fields: [authorId], references: [id])
+  subject User @relation("ReviewSubject", fields: [subjectId], references: [id])
+
+  @@index([subjectId, createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// sha256 of the token. The token itself is never stored.
+  tokenHash String    @unique
+  /// Rotation family, for reuse detection: presenting a revoked token kills the
+  /// whole family rather than just that token.
+  family    String    @db.Uuid
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  userAgent String?
+  ip        String?
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([family])
+  @@index([expiresAt])
+}
+
+/// The photo report is the product's emotional payoff, so it gets a real table
+/// rather than a JSON column someone regrets.
+model WalkPhoto {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  objectKey String
+  takenAt   DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([bookingId])
 }

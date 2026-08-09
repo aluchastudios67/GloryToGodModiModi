@@ -45,6 +45,8 @@ jobs:
       LOG_LEVEL: silent
       CORS_ORIGINS: http://localhost:8081
       TRUST_PROXY: 'false'
+      # Throwaway key for CI only; never used against real data.
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       DATABASE_URL: postgresql://modimodi:modimodi@localhost:5432/modimodi_test
       TEST_DATABASE_URL: postgresql://modimodi:modimodi@localhost:5432/modimodi_test
 

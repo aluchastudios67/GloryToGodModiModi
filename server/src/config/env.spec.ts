@@ -8,6 +8,7 @@ const valid = {
   LOG_LEVEL: 'debug',
   CORS_ORIGINS: 'http://localhost:8081,http://localhost:19006',
   TRUST_PROXY: 'false',
+  ENCRYPTION_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
 };
 
 describe('parseEnv', () => {

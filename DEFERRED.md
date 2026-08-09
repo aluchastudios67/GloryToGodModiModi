@@ -6,6 +6,66 @@ decision.
 
 ---
 
+## Phase 1 — Domain model and migrations
+
+### Seed photos are Unsplash URLs in an object-key column
+
+`prisma/seed.ts` puts full `https://images.unsplash.com/...` URLs into
+`User.avatarKey`, `Dog.photoKey` and `WalkPhoto.objectKey`, which are meant to
+hold **R2 object keys**, not URLs. They are gathered in one `SEED_PHOTOS` map so
+the migration is a single edit.
+
+*Consequence for Phase 3:* the serialiser that turns a key into a CDN URL must
+tolerate a value that is already a URL, or the seeded data renders as a broken
+image. Better still, migrate the images to R2 first and delete the special case.
+
+### `ENCRYPTION_KEY` lives in an environment variable, not a KMS
+
+`Address.entranceCode` is encrypted with AES-256-GCM using a key read from the
+environment. That is a real improvement over plaintext and still short of right:
+anyone who can read the environment can decrypt every door code in the database.
+
+There is also **no key versioning**. Rotating `ENCRYPTION_KEY` makes every
+existing ciphertext undecryptable — there is no `keyVersion` column and no
+re-encryption path. Before this holds real customer data, either move to a KMS
+with envelope encryption or at minimum add a key id alongside the ciphertext so
+rotation is possible.
+
+### The mock's money was not self-consistent, so the seed had to choose
+
+`data/mock.ts` sets booking totals by hand (₾25 for a 45-minute walk at ₾15/30
+min) which do not match its own `priceFor()`. The seed treats the displayed
+total as `priceTetri` — what the owner pays — with a ₾3 fee and
+`payoutTetri = price - fee`. The screens therefore still show the numbers the
+demo showed. **Phase 4 must compute price from `priceFor()` for real bookings**,
+so seeded rows and new rows will follow slightly different arithmetic until the
+seed is regenerated.
+
+### `endsAt` must be supplied on create even though the trigger overwrites it
+
+The column is `NOT NULL` with no default, so Prisma's generated types require a
+value on `booking.create()`. The trigger replaces whatever is passed. Callers
+should compute it honestly anyway; the tests assert the trigger wins. Giving it
+a `@default(now())` would let callers omit it but would be a lie in the schema
+if the trigger were ever dropped.
+
+### `prisma migrate reset` was never run
+
+Prisma requires explicit human consent for destructive commands. The Definition
+of Done items that call for `migrate reset` were instead verified by creating a
+throwaway `modimodi_scratch` database, applying `migrate deploy` to it from
+empty, seeding twice with identical row counts, and dropping it. Equivalent in
+substance, but `migrate reset` itself is unexercised.
+
+### Extensions are created by the migration, but the seed assumes they exist
+
+`CREATE EXTENSION IF NOT EXISTS citext / btree_gist` sits at the top of the
+initial migration, so any fresh database gets them. A database where the role
+lacks `CREATE EXTENSION` privileges will fail at migration time. Neon grants
+this on the default role; a locked-down production role may not.
+
+---
+
 ## Phase 0 — Foundation
 
 ### Local Postgres is 18, not the specified 16
@@ -75,7 +135,7 @@ throws, and a rejection from the limiter inside Nest reaches the global
 exception filter and becomes a 500. If either behaviour changes on upgrade,
 the rate-limit tests in `test/hardening.e2e.spec.ts` are what will catch it.
 
-### Phase 1 pre-finding: the overlap constraint cannot use a generated column
+### RESOLVED in Phase 1: the overlap constraint could not use a generated column
 
 The Phase 1 brief asks for "a `tstzrange` **generated** from `scheduledFor` and
 `durationMin`". PostgreSQL rejects it:
@@ -89,7 +149,7 @@ depends on the session `TimeZone` — so it cannot back a `STORED` generated
 column, and for the same reason it cannot appear in an index expression either.
 `make_interval()` does not help; the addition operator is the stable part.
 
-**Proposed deviation, to confirm before Phase 1:** give `Booking` a real
+**Resolved as proposed.** `Booking` has a real
 `endsAt timestamptz` column, written server-side in the same transaction as
 `scheduledFor` and `durationMin`, and build the range from two plain timestamps:
 
