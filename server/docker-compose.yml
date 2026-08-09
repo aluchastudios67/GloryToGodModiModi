@@ -1,0 +1,27 @@
+# Postgres for local development.
+#
+# Published on 5433, not 5432, so it can coexist with a Homebrew PostgreSQL
+# install without a port clash. If you use this instead of a local install,
+# point DATABASE_URL at:
+#   postgresql://modimodi:modimodi@localhost:5433/modimodi_dev
+services:
+  postgres:
+    image: postgres:16
+    container_name: modimodi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: modimodi
+      POSTGRES_PASSWORD: modimodi
+      POSTGRES_DB: modimodi_dev
+    ports:
+      - '5433:5432'
+    volumes:
+      - modimodi-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U modimodi -d modimodi_dev']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  modimodi-pgdata:

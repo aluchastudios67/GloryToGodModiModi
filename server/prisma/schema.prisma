@@ -1,0 +1,14 @@
+// Phase 0: datasource and generator only. The domain model arrives in Phase 1.
+//
+// Nothing here defines a table yet — this exists so `prisma generate` produces
+// a client the health check can run `SELECT 1` through, proving the connection
+// path works before any schema depends on it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
