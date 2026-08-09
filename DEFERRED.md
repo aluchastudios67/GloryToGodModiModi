@@ -75,6 +75,49 @@ throws, and a rejection from the limiter inside Nest reaches the global
 exception filter and becomes a 500. If either behaviour changes on upgrade,
 the rate-limit tests in `test/hardening.e2e.spec.ts` are what will catch it.
 
+### Phase 1 pre-finding: the overlap constraint cannot use a generated column
+
+The Phase 1 brief asks for "a `tstzrange` **generated** from `scheduledFor` and
+`durationMin`". PostgreSQL rejects it:
+
+```
+ERROR:  generation expression is not immutable
+```
+
+`timestamptz + interval` is **STABLE**, not IMMUTABLE — month and day arithmetic
+depends on the session `TimeZone` — so it cannot back a `STORED` generated
+column, and for the same reason it cannot appear in an index expression either.
+`make_interval()` does not help; the addition operator is the stable part.
+
+**Proposed deviation, to confirm before Phase 1:** give `Booking` a real
+`endsAt timestamptz` column, written server-side in the same transaction as
+`scheduledFor` and `durationMin`, and build the range from two plain timestamps:
+
+```sql
+CONSTRAINT booking_no_overlap EXCLUDE USING gist (
+  "walkerId" WITH =,
+  tstzrange("scheduledFor", "endsAt") WITH &&
+) WHERE (status IN ('ACCEPTED','IN_PROGRESS'))
+```
+
+`tstzrange(timestamptz, timestamptz)` *is* immutable, so this is accepted. It
+was exercised against the local database and behaves correctly: an overlapping
+`ACCEPTED` booking for the same walker is rejected; the same slot for a
+different walker is allowed; an overlapping `CANCELLED` booking is allowed (the
+partial predicate works); and an adjacent booking that merely touches the
+previous one is allowed, because `tstzrange` is half-open `[)`.
+
+The cost is that `endsAt` is now derived data that the application must keep
+consistent with `durationMin`. A `CHECK` tying the two together is not possible
+for the same immutability reason, so a `BEFORE INSERT OR UPDATE` trigger that
+recomputes `endsAt` is the safer option — the database, not the service, stays
+the source of truth.
+
+`btree_gist` and `citext` are available (both 1.8) and have been installed into
+`modimodi_dev` by hand during this check. **The Phase 1 migration must create
+them itself** with `CREATE EXTENSION IF NOT EXISTS`, or CI and any fresh
+database will fail.
+
 ### Not yet built, and assumed by later phases
 
 - No authentication, so **every route is currently public**. The global
