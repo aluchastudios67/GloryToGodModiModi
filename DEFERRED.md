@@ -6,6 +6,52 @@ decision.
 
 ---
 
+## Phase 2 — Authentication (server side)
+
+### The app side of Phase 2 is not built
+
+The server is complete and tested; **the Expo app still has no login screen and
+still talks to no API.** Outstanding from the phase brief: `expo-secure-store`,
+TanStack Query, axios, the single-flight refresh queue, `app/(auth)/login.tsx`
+and `register.tsx`, and gating `app/_layout.tsx` on auth status. Until that
+lands, these Definition-of-Done items are unmet: register/login from a real
+device, staying logged in across an app restart, and the four-concurrent-401s
+test.
+
+### The common-password list is 10,000 entries, not the 1,000 the brief asked for
+
+Measured against SecLists' frequency-ordered list: **zero of the top 1,000
+passwords are 10 characters or longer**, so a top-1,000 check can never fire
+behind a 10-character minimum. It would have been a check that looks like
+security and is not.
+
+Widened to the top 10,000, which contains 51 passwords that survive the length
+rule — "1234567890" (rank 1159) and "qwertyuiop" (rank 2101) among them. Cost is
+~120 KB of source and a `Set` built once at startup.
+
+### Credential rate limiting is in-process and per-instance
+
+`AuthThrottleGuard` keeps fixed-window counters in a `Map`. It enforces the
+brief's limits (login 5/min and 20/hour, register 3/hour, refresh 30/min) per IP
+**and** per email, but the counters reset on deploy and are not shared between
+instances — two instances mean double every limit. Redis or the platform's
+limiter before there is more than one process.
+
+`TRUST_PROXY` matters here as much as for the global limiter: with it wrongly
+false behind a proxy, every caller shares one IP bucket and one attacker locks
+out everybody.
+
+### Access tokens cannot be revoked before they expire
+
+By design: they are stateless and live 15 minutes. `logout` and `logout-all`
+revoke *refresh* tokens, so a stolen access token stays valid for up to fifteen
+minutes after a logout. The mitigation already in place is that capability flags
+are read from the database per request, so a disabled account stops working
+immediately even though its token still verifies. A deny-list keyed on `jti`
+would close the rest, at the cost of a database read per request.
+
+---
+
 ## Phase 1 — Domain model and migrations
 
 ### Seed photos are Unsplash URLs in an object-key column

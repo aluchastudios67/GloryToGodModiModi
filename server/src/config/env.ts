@@ -90,6 +90,14 @@ const encryptionKey = z
     message: 'must be 32 bytes, base64 encoded (generate: npm run keygen)',
   });
 
+/**
+ * HS256 signing secret for access tokens. 32 characters minimum — a short
+ * secret makes a 15-minute token forgeable at leisure.
+ */
+const jwtSecret = z.string().min(32, {
+  message: 'must be at least 32 characters (generate: npm run keygen)',
+});
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(NODE_ENVS),
   PORT: z.coerce.number().int().min(1).max(65_535),
@@ -98,6 +106,7 @@ export const envSchema = z.object({
   CORS_ORIGINS: corsOrigins,
   TRUST_PROXY: trustProxy,
   ENCRYPTION_KEY: encryptionKey,
+  JWT_SECRET: jwtSecret,
 });
 
 export type Env = z.infer<typeof envSchema>;

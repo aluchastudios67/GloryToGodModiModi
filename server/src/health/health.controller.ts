@@ -7,6 +7,7 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { HealthDto } from './health.dto';
+import { Public } from '../auth/auth.guard';
 import { Health, HealthService } from './health.service';
 
 /**
@@ -18,6 +19,7 @@ import { Health, HealthService } from './health.service';
 export class HealthController {
   constructor(private readonly health: HealthService) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Liveness and database reachability' })
   @ApiOkResponse({ description: 'The database answered.', type: HealthDto })

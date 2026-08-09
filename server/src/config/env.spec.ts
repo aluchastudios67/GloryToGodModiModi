@@ -9,6 +9,7 @@ const valid = {
   CORS_ORIGINS: 'http://localhost:8081,http://localhost:19006',
   TRUST_PROXY: 'false',
   ENCRYPTION_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+  JWT_SECRET: 'test-secret-that-is-at-least-32-characters',
 };
 
 describe('parseEnv', () => {
