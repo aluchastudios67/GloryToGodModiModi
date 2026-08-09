@@ -7,6 +7,7 @@ const valid = {
   DATABASE_URL: 'postgresql://localhost:5432/modimodi_dev',
   LOG_LEVEL: 'debug',
   CORS_ORIGINS: 'http://localhost:8081,http://localhost:19006',
+  TRUST_PROXY: 'false',
 };
 
 describe('parseEnv', () => {

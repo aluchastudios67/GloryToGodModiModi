@@ -57,6 +57,24 @@ need it.
 binaries. `@scarf/scarf` (telemetry) and `fsevents` were deliberately **not**
 approved.
 
+### `ErrorEnvelopeDto` is declared but not referenced
+
+`src/health/health.dto.ts` defines the error envelope as a DTO so the generated
+client can type failures, but no endpoint declares it yet, so it does not appear
+in `components.schemas`. Attach `@ApiResponse({ type: ErrorEnvelopeDto })` to the
+first real endpoints in Phase 2, or the app will have no generated type for the
+one shape every failure uses.
+
+### The rate limiter is a hook, not the plugin's `global` mode
+
+`registerRateLimitHook()` in `src/main.ts` applies the limiter via a global
+`onRequest` hook, and translates the plugin's rejection into a 429 envelope by
+hand. Two Fastify/Nest interactions forced this and are worth remembering:
+Nest installs its own `setNotFoundHandler` during `init()` so a second one
+throws, and a rejection from the limiter inside Nest reaches the global
+exception filter and becomes a 500. If either behaviour changes on upgrade,
+the rate-limit tests in `test/hardening.e2e.spec.ts` are what will catch it.
+
 ### Not yet built, and assumed by later phases
 
 - No authentication, so **every route is currently public**. The global
@@ -65,6 +83,11 @@ approved.
 - Rate limiting is a single global 100 req/min per IP, in memory. It resets on
   restart and is per-instance, not shared. Fine at one instance; needs Redis or
   the platform's limiter before there are two.
+- `TRUST_PROXY` is `false` locally and **must be set to `true` in production**,
+  where Koyeb terminates TLS upstream. Left false behind a proxy, every request
+  appears to come from the proxy's IP and one noisy client throttles everyone.
+  Left true with no proxy, anyone can spoof `X-Forwarded-For` for a fresh quota.
+  There is no safe default, which is why it has none.
 - `ENCRYPTION_KEY` (Phase 1, for `Address.entranceCode`) is not in the env
   schema yet. When it lands it will be an env var, **not** a KMS-managed key —
   see the Phase 1 brief, which already flags this.

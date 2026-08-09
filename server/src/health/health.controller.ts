@@ -1,6 +1,12 @@
 import { Controller, Get, Res } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
+import { HealthDto } from './health.dto';
 import { Health, HealthService } from './health.service';
 
 /**
@@ -14,8 +20,10 @@ export class HealthController {
 
   @Get()
   @ApiOperation({ summary: 'Liveness and database reachability' })
-  @ApiOkResponse({
-    description: '200 when the database answers, 503 when it does not',
+  @ApiOkResponse({ description: 'The database answered.', type: HealthDto })
+  @ApiServiceUnavailableResponse({
+    description: 'The database did not answer within 2 seconds.',
+    type: HealthDto,
   })
   async get(
     @Res({ passthrough: true }) reply: FastifyReply,

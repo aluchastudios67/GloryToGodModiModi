@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { PrismaService } from '../common/prisma.service';
 
 export type DbStatus = 'up' | 'down';
@@ -77,11 +79,19 @@ export async function pingDatabase(
   }
 }
 
-/** Injected at build time would be nicer; package.json is the pragmatic source. */
+/**
+ * Injected at build time would be nicer; package.json is the pragmatic source.
+ *
+ * Read rather than imported: importing JSON from `src` would pull package.json
+ * into the compilation root and shift every emitted path under `dist`, breaking
+ * `node dist/main.js`. The relative path resolves from both `dist/health` and
+ * `src/health`.
+ */
 export const VERSION: string = (() => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pkg = require('../../package.json') as { version?: unknown };
+    const path = resolve(__dirname, '..', '..', 'package.json');
+    // Cast: JSON.parse returns `any`; the shape is checked on the next line.
+    const pkg = JSON.parse(readFileSync(path, 'utf8')) as { version?: unknown };
     return typeof pkg.version === 'string' ? pkg.version : '0.0.0';
   } catch {
     return '0.0.0';

@@ -67,12 +67,24 @@ function isHttpOrigin(origin: string): boolean {
   }
 }
 
+/**
+ * Whether to believe `X-Forwarded-For`.
+ *
+ * Only true when something you control terminates TLS in front of this process.
+ * Trusting it unconditionally hands the rate limiter's identity key to the
+ * caller: rotate the header, get a fresh quota, forever.
+ */
+const trustProxy = z
+  .enum(['true', 'false'])
+  .transform((value) => value === 'true');
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(NODE_ENVS),
   PORT: z.coerce.number().int().min(1).max(65_535),
   DATABASE_URL: postgresUrl,
   LOG_LEVEL: z.enum(LOG_LEVELS),
   CORS_ORIGINS: corsOrigins,
+  TRUST_PROXY: trustProxy,
 });
 
 export type Env = z.infer<typeof envSchema>;

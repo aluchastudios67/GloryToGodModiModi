@@ -7,7 +7,24 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "200 when the database answers, 503 when it does not"
+            "description": "The database answered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database did not answer within 2 seconds.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
           }
         },
         "summary": "Liveness and database reachability",
@@ -33,6 +50,44 @@
         "type": "http"
       }
     },
-    "schemas": {}
+    "schemas": {
+      "HealthDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "description": "`degraded` whenever the database is unreachable."
+          },
+          "uptimeSec": {
+            "type": "number",
+            "example": 421,
+            "description": "Process uptime in whole seconds."
+          },
+          "db": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "description": "Result of `SELECT 1` under a 2 second timeout."
+          },
+          "version": {
+            "type": "string",
+            "example": "0.1.0",
+            "description": "Server package version."
+          }
+        },
+        "required": [
+          "status",
+          "uptimeSec",
+          "db",
+          "version"
+        ]
+      }
+    }
   }
 }
