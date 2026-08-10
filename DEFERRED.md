@@ -167,6 +167,17 @@ this on the default role; a locked-down production role may not.
 
 ## Phase 0 — Foundation
 
+### RESOLVED: Postgres version parity is now proven
+
+Local development still uses Homebrew PostgreSQL 18 while `docker-compose.yml`
+and CI both pin `postgres:16`. That gap is no longer a risk carried on trust:
+the first CI run applied the full initial migration — `citext`, `btree_gist`,
+the `EXCLUDE USING gist` overlap constraint, the money CHECKs and the `endsAt`
+trigger — against a real `postgres:16` container and ran all 110 tests green
+against it.
+
+Original note follows.
+
 ### Local Postgres is 18, not the specified 16
 
 `docker-compose.yml` pins `postgres:16` as the brief requires, and CI uses the
@@ -181,12 +192,16 @@ Phase 0 (only `SELECT 1`), and it grows the moment Phase 1 adds `tstzrange`,
 Docker or `brew install postgresql@16`** so local matches CI where the SQL
 starts to matter.
 
-### CI has never run
+### RESOLVED: CI is green
 
-`.github/workflows/server.yml` is written and complete, but this repository has
-no git remote, so the "CI is green on a pull request" acceptance criterion is
-**not met and cannot be**. The workflow is unverified beyond review. First push
-to GitHub should be treated as its first real test.
+First push to `github.com/aluchastudios67/GloryToGodModiModi` on 2026-08-10 ran
+the workflow end to end — install, prisma generate, migrate deploy, typecheck,
+lint, 110 tests, and the OpenAPI drift check — all passing against a
+`postgres:16` service container.
+
+Still unexercised: the workflow's `pull_request` trigger, since everything so
+far has been pushed straight to `main`. The Phase 0 brief asked specifically for
+green CI *on a pull request*.
 
 ### `prisma migrate deploy` runs against an empty migrations directory
 
