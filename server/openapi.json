@@ -188,6 +188,151 @@
           "walkers"
         ]
       }
+    },
+    "/me/dogs": {
+      "get": {
+        "operationId": "MeController_dogs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The caller's dogs",
+        "tags": [
+          "me"
+        ]
+      },
+      "post": {
+        "operationId": "MeController_addDog",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add a dog",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/me/dogs/{id}": {
+      "patch": {
+        "operationId": "MeController_editDog",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a dog",
+        "tags": [
+          "me"
+        ]
+      },
+      "delete": {
+        "operationId": "MeController_removeDog",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Soft-delete a dog",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/me/addresses": {
+      "get": {
+        "operationId": "MeController_addresses",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The caller's addresses, door codes decrypted",
+        "tags": [
+          "me"
+        ]
+      },
+      "post": {
+        "operationId": "MeController_addAddress",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add an address",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/me/walker-profile": {
+      "get": {
+        "operationId": "MeController_walkerProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The walker profile, or null",
+        "tags": [
+          "me"
+        ]
+      },
+      "put": {
+        "operationId": "MeController_putWalkerProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Create or replace the walker profile",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/me/walker-profile/availability": {
+      "patch": {
+        "operationId": "MeController_setAvailability",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Go available or unavailable",
+        "tags": [
+          "me"
+        ]
+      }
     }
   },
   "info": {

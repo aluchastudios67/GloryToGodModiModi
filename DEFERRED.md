@@ -8,15 +8,22 @@ decision.
 
 ## Phase 3 — Profiles, dogs, walker search (partial)
 
-### Only walker search is built
+### Uploads and the whole app side are still outstanding
 
-`GET /walkers` and `GET /walkers/:id` are done and tested. **Still outstanding
-from the phase brief:** `GET/POST/PATCH/DELETE /me/dogs`, `GET/POST
-/me/addresses`, `PUT /me/walker-profile`,
-`PATCH /me/walker-profile/availability`, `POST /uploads/presign`, and the whole
-app side — `openapi-typescript` codegen, TanStack Query hooks, and replacing the
-`walkers` / `myDogs` / `currentLocation` imports in `index.tsx`, `search.tsx`
-and `profile.tsx`.
+Built and tested: walker search, dogs CRUD, addresses, walker profile and
+availability — 19 routes in `openapi.json`.
+
+**Not built:** `POST /uploads/presign`, and the entire app side of the phase —
+`openapi-typescript` codegen with an `api:types` script wired into CI, TanStack
+Query hooks, and replacing the `walkers` / `myDogs` / `currentLocation` imports
+in `index.tsx`, `search.tsx` and `profile.tsx`. The screens still read
+`data/mock.ts`.
+
+`/uploads/presign` was skipped deliberately rather than stubbed: it needs real
+R2 credentials and an S3 SigV4 signature, and shipping an unverifiable signing
+implementation is worse than an absent one. It needs `R2_ACCOUNT_ID`,
+`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and `CDN_BASE_URL` in
+the env schema when it lands.
 
 ### The "1 კმ-ში" filter chip cannot be honoured yet
 

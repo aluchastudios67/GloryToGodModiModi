@@ -4,6 +4,7 @@ import { CommonModule } from './common/common.module';
 import { ConfigModule } from './config/config.module';
 import { HealthController } from './health/health.controller';
 import { HealthService } from './health/health.service';
+import { MeModule } from './me/me.module';
 import { WalkersModule } from './walkers/walkers.module';
 
 /**
@@ -11,7 +12,7 @@ import { WalkersModule } from './walkers/walkers.module';
  * ConfigModule and CommonModule are global, so nothing below has to import them.
  */
 @Module({
-  imports: [ConfigModule, CommonModule, AuthModule, WalkersModule],
+  imports: [ConfigModule, CommonModule, AuthModule, WalkersModule, MeModule],
   controllers: [HealthController],
   providers: [HealthService],
 })
