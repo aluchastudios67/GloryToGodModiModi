@@ -6,6 +6,42 @@ decision.
 
 ---
 
+## Phase 3 — Profiles, dogs, walker search (partial)
+
+### Only walker search is built
+
+`GET /walkers` and `GET /walkers/:id` are done and tested. **Still outstanding
+from the phase brief:** `GET/POST/PATCH/DELETE /me/dogs`, `GET/POST
+/me/addresses`, `PUT /me/walker-profile`,
+`PATCH /me/walker-profile/availability`, `POST /uploads/presign`, and the whole
+app side — `openapi-typescript` codegen, TanStack Query hooks, and replacing the
+`walkers` / `myDogs` / `currentLocation` imports in `index.tsx`, `search.tsx`
+and `profile.tsx`.
+
+### The "1 კმ-ში" filter chip cannot be honoured yet
+
+Per ADR-006 the search endpoint accepts `lat`, `lng` and `radiusKm` and ignores
+them, ordering by rating instead. `PublicWalkerDto.distanceKm` is therefore
+**always null**, and the distance filter in `app/(tabs)/search.tsx` has nothing
+to filter on.
+
+*Assumption made, flagged rather than silently chosen:* the phase's acceptance
+criterion "every filter combination matches what the mock filter produced"
+cannot hold for that one chip, because the mock had hardcoded distances and the
+database has no coordinates. Every other chip — availability, price, verified,
+district, text search — matches exactly, verified against the seeded data. When
+the chip is wired to the API it should either be hidden or mapped to a district
+until location lands.
+
+### `CDN_BASE_URL` is read from `process.env`, not the Zod-parsed config
+
+`toPublicUrl()` in `walkers.service.ts` reads it directly, so it is neither
+required nor validated at boot — the one place in the server that breaks the
+"parse, don't validate" rule. It is optional today because seeded photos are
+absolute URLs. When R2 lands it should move into `env.ts` and become required.
+
+---
+
 ## Phase 2 — Authentication (server side)
 
 ### The app side is built, but only verified in a browser

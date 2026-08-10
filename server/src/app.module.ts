@@ -4,13 +4,14 @@ import { CommonModule } from './common/common.module';
 import { ConfigModule } from './config/config.module';
 import { HealthController } from './health/health.controller';
 import { HealthService } from './health/health.service';
+import { WalkersModule } from './walkers/walkers.module';
 
 /**
  * Phase 0 was one module and one route. Feature modules arrive with the domain:
  * ConfigModule and CommonModule are global, so nothing below has to import them.
  */
 @Module({
-  imports: [ConfigModule, CommonModule, AuthModule],
+  imports: [ConfigModule, CommonModule, AuthModule, WalkersModule],
   controllers: [HealthController],
   providers: [HealthService],
 })

@@ -135,6 +135,59 @@
           "auth"
         ]
       }
+    },
+    "/walkers": {
+      "get": {
+        "operationId": "WalkersController_search",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalkerPageDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search walkers, newest-rated first",
+        "tags": [
+          "walkers"
+        ]
+      }
+    },
+    "/walkers/{id}": {
+      "get": {
+        "operationId": "WalkersController_byId",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicWalkerDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One walker",
+        "tags": [
+          "walkers"
+        ]
+      }
     }
   },
   "info": {
@@ -189,6 +242,92 @@
           "uptimeSec",
           "db",
           "version"
+        ]
+      },
+      "PublicWalkerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "ნინო ბ."
+          },
+          "avatarUrl": {
+            "type": "object",
+            "nullable": true,
+            "description": "CDN URL, resolved from the stored object key."
+          },
+          "rating": {
+            "type": "number",
+            "example": 4.9,
+            "description": "Denormalised average, 0–5."
+          },
+          "reviewCount": {
+            "type": "number",
+            "example": 127
+          },
+          "price30Tetri": {
+            "type": "number",
+            "example": 1500,
+            "description": "Price for 30 minutes, in tetri."
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "True once an admin has verified identity."
+          },
+          "isAvailableNow": {
+            "type": "boolean"
+          },
+          "districts": {
+            "example": [
+              "ვაკე"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bio": {
+            "type": "string",
+            "example": "სამი წელია ვასეირნებ ძაღლებს ვაკეში."
+          },
+          "distanceKm": {
+            "type": "object",
+            "nullable": true,
+            "description": "Always null until location lands. The field exists so the client contract does not change when it starts being populated."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "rating",
+          "reviewCount",
+          "price30Tetri",
+          "verified",
+          "isAvailableNow",
+          "districts",
+          "bio"
+        ]
+      },
+      "WalkerPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicWalkerDto"
+            }
+          },
+          "nextCursor": {
+            "type": "object",
+            "nullable": true,
+            "description": "Pass back as ?cursor= for the next page. Null at the end."
+          }
+        },
+        "required": [
+          "items"
         ]
       }
     }
