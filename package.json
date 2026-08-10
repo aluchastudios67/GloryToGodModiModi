@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "openapi-typescript": "^7.13.0",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10"
   },
@@ -37,7 +38,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "api:types": "openapi-typescript server/openapi.json -o src/api/generated.ts"
   },
   "private": true
 }

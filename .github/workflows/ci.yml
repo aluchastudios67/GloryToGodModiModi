@@ -1,26 +1,19 @@
-name: server
+name: ci
 
 on:
   push:
-    paths:
-      - 'server/**'
-      - '.github/workflows/server.yml'
   pull_request:
-    paths:
-      - 'server/**'
-      - '.github/workflows/server.yml'
 
 concurrency:
-  group: server-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: server
-
 jobs:
-  check:
+  server:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
 
     services:
       postgres:
@@ -83,5 +76,34 @@ jobs:
           npm run openapi
           if ! git diff --exit-code --stat -- openapi.json; then
             echo "::error::openapi.json is stale. Run 'npm run openapi' and commit the result."
+            exit 1
+          fi
+
+  app:
+    runs-on: ubuntu-latest
+    # Needs the server's openapi.json, which lives in the same checkout.
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Check generated API types are current
+        run: |
+          npm run api:types
+          if ! git diff --exit-code --stat -- src/api/generated.ts; then
+            echo "::error::src/api/generated.ts is stale. Run 'npm run api:types' and commit the result."
             exit 1
           fi

@@ -15,6 +15,7 @@ export class PublicWalkerDto {
   name!: string;
 
   @ApiPropertyOptional({
+    type: String,
     nullable: true,
     description: 'CDN URL, resolved from the stored object key.',
   })
@@ -42,6 +43,7 @@ export class PublicWalkerDto {
   bio!: string;
 
   @ApiPropertyOptional({
+    type: Number,
     nullable: true,
     description:
       'Always null until location lands. The field exists so the client ' +
@@ -55,6 +57,7 @@ export class WalkerPageDto {
   items!: PublicWalkerDto[];
 
   @ApiPropertyOptional({
+    type: String,
     nullable: true,
     description: 'Pass back as ?cursor= for the next page. Null at the end.',
   })

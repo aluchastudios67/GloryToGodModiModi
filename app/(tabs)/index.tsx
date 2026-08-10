@@ -22,6 +22,7 @@ import {
   SectionHeader,
   Sheet,
   WalkerCard,
+  WalkerCardSkeleton,
 } from '../../components';
 import {
   DogRequest,
@@ -29,8 +30,8 @@ import {
   dogRequests,
   gel,
   km,
-  walkers,
 } from '../../data/mock';
+import { useInvalidateWalkers, useWalkers } from '../../src/api/hooks';
 import { useAppStore } from '../../store/useAppStore';
 import {
   alpha,
@@ -49,6 +50,10 @@ export default function HomeScreen() {
 /* ------------------------------------------------------------------ owner */
 
 function OwnerHome() {
+  const { data, isPending, isError, refetch } = useWalkers();
+  const invalidate = useInvalidateWalkers();
+  const walkers = data?.items ?? [];
+
   return (
     <Screen padded={false}>
       <FlatList
@@ -76,7 +81,39 @@ function OwnerHome() {
               action="ყველა"
               onActionPress={() => router.push('/search')}
             />
+
+            {/* Skeletons, never a spinner on a blank screen. */}
+            {isPending ? (
+              <View>
+                <WalkerCardSkeleton />
+                <WalkerCardSkeleton />
+                <WalkerCardSkeleton />
+              </View>
+            ) : null}
           </View>
+        }
+        ListEmptyComponent={
+          isPending ? null : isError ? (
+            <EmptyState
+              tone="error"
+              icon="wifi-off"
+              title="ვერ ჩაიტვირთა"
+              body="შეამოწმე ინტერნეტი და სცადე ხელახლა."
+              actionLabel="ხელახლა ცდა"
+              onAction={() => void refetch()}
+            />
+          ) : (
+            <EmptyState
+              icon="search"
+              title="ახლოს გამსეირნებელი არ არის"
+              body="სცადე ძებნა სხვა ფილტრებით."
+              actionLabel="ძებნა"
+              onAction={() => {
+                void invalidate();
+                router.push('/search');
+              }}
+            />
+          )
         }
         renderItem={({ item }) => (
           <WalkerCard

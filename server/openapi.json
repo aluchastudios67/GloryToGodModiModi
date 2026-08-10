@@ -114,7 +114,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
           }
         },
         "summary": "The signed-in user",
@@ -127,7 +134,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
           }
         },
         "summary": "Update name or avatar",
@@ -195,7 +209,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DogDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "The caller's dogs",
@@ -207,8 +231,15 @@
         "operationId": "MeController_addDog",
         "parameters": [],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DogDto"
+                }
+              }
+            }
           }
         },
         "summary": "Add a dog",
@@ -232,7 +263,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DogDto"
+                }
+              }
+            }
           }
         },
         "summary": "Update a dog",
@@ -254,7 +292,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "summary": "Soft-delete a dog",
@@ -269,7 +314,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AddressDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "The caller's addresses, door codes decrypted",
@@ -281,8 +336,15 @@
         "operationId": "MeController_addAddress",
         "parameters": [],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressDto"
+                }
+              }
+            }
           }
         },
         "summary": "Add an address",
@@ -297,7 +359,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalkerProfileDto"
+                }
+              }
+            }
           }
         },
         "summary": "The walker profile, or null",
@@ -310,7 +379,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalkerProfileDto"
+                }
+              }
+            }
           }
         },
         "summary": "Create or replace the walker profile",
@@ -325,7 +401,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalkerProfileDto"
+                }
+              }
+            }
           }
         },
         "summary": "Go available or unavailable",
@@ -389,6 +472,49 @@
           "version"
         ]
       },
+      "MeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "example": "levan@modimodi.ge"
+          },
+          "name": {
+            "type": "string",
+            "example": "ლევან ხ."
+          },
+          "avatarKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "isOwner": {
+            "type": "boolean"
+          },
+          "isWalker": {
+            "type": "boolean"
+          },
+          "hasWalkerProfile": {
+            "type": "boolean",
+            "description": "True once a walker profile exists."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "isOwner",
+          "isWalker",
+          "hasWalkerProfile",
+          "createdAt"
+        ]
+      },
       "PublicWalkerDto": {
         "type": "object",
         "properties": {
@@ -400,7 +526,7 @@
             "example": "ნინო ბ."
           },
           "avatarUrl": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "CDN URL, resolved from the stored object key."
           },
@@ -439,7 +565,7 @@
             "example": "სამი წელია ვასეირნებ ძაღლებს ვაკეში."
           },
           "distanceKm": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "description": "Always null until location lands. The field exists so the client contract does not change when it starts being populated."
           }
@@ -466,13 +592,137 @@
             }
           },
           "nextCursor": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Pass back as ?cursor= for the next page. Null at the end."
           }
         },
         "required": [
           "items"
+        ]
+      },
+      "DogDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "ბობი"
+          },
+          "breed": {
+            "type": "string",
+            "example": "ლაბრადორი"
+          },
+          "birthDate": {
+            "type": "string",
+            "example": "2023-03-14",
+            "description": "Date only. The app renders \"3 წლის\" from this."
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "sizeKg": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "breed",
+          "birthDate"
+        ]
+      },
+      "OkDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "AddressDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "example": "სახლი"
+          },
+          "district": {
+            "type": "string",
+            "example": "ვაკე"
+          },
+          "street": {
+            "type": "string",
+            "example": "აბაშიძის 12"
+          },
+          "entranceCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Decrypted, and only ever returned to the address owner."
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "district",
+          "street"
+        ]
+      },
+      "WalkerProfileDto": {
+        "type": "object",
+        "properties": {
+          "bio": {
+            "type": "string"
+          },
+          "price30Tetri": {
+            "type": "number",
+            "example": 1500,
+            "description": "Per 30 minutes, in tetri."
+          },
+          "districts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isAvailableNow": {
+            "type": "boolean"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "rating": {
+            "type": "number",
+            "example": 4.9
+          },
+          "reviewCount": {
+            "type": "number",
+            "example": 127
+          }
+        },
+        "required": [
+          "bio",
+          "price30Tetri",
+          "districts",
+          "isAvailableNow",
+          "verified",
+          "rating",
+          "reviewCount"
         ]
       }
     }

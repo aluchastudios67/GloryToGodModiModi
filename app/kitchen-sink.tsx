@@ -27,7 +27,8 @@ import {
   WalkerCard,
   WalkerCardSkeleton,
 } from '../components';
-import { PHOTOS, dogRequests, walkers } from '../data/mock';
+import { PHOTOS, dogRequests } from '../data/mock';
+import type { Walker } from '../src/api/hooks';
 import { useAppStore } from '../store/useAppStore';
 import { colors, hitSlop, pressed, spacing, type } from '../theme';
 
@@ -36,6 +37,39 @@ import { colors, hitSlop, pressed, spacing, type } from '../theme';
  * reachable from the version line at the bottom of the profile tab.
  * Use it to eyeball the library after a theme change.
  */
+/**
+ * Fixed samples in the API's shape, so the gallery keeps working without a
+ * network call and stops depending on `data/mock.ts`.
+ */
+const SAMPLE_WALKERS: [Walker, Walker] = [
+  {
+    id: 'sample-1',
+    name: 'ნინო ბ.',
+    avatarUrl: PHOTOS.nino,
+    rating: 4.9,
+    reviewCount: 127,
+    price30Tetri: 1500,
+    verified: true,
+    isAvailableNow: true,
+    districts: ['ვაკე'],
+    bio: 'სამი წელია ვასეირნებ ძაღლებს ვაკეში.',
+    distanceKm: 0.8,
+  },
+  {
+    id: 'sample-2',
+    name: 'ანა კ.',
+    avatarUrl: PHOTOS.ana,
+    rating: 5,
+    reviewCount: 41,
+    price30Tetri: 1400,
+    verified: true,
+    isAvailableNow: false,
+    districts: ['ვერა'],
+    bio: 'საღამოობით თავისუფალი ვარ.',
+    distanceKm: null,
+  },
+];
+
 export default function KitchenSinkScreen() {
   const showToast = useAppStore((s) => s.showToast);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -132,8 +166,8 @@ export default function KitchenSinkScreen() {
       </Group>
 
       <Group label="WalkerCard / DogRequestCard">
-        <WalkerCard walker={walkers[0]} onPress={() => {}} />
-        <WalkerCard walker={walkers[2]} onPress={() => {}} />
+        <WalkerCard walker={SAMPLE_WALKERS[0]} onPress={() => {}} />
+        <WalkerCard walker={SAMPLE_WALKERS[1]} onPress={() => {}} />
         <DogRequestCard request={dogRequests[0]} onPress={() => {}} />
         <DogRequestCard request={dogRequests[3]} onPress={() => {}} />
       </Group>

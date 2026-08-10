@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   FlatList,
   LayoutAnimation,
@@ -16,49 +16,56 @@ import {
   WalkerCard,
   WalkerCardSkeleton,
 } from '../../components';
-import { walkers } from '../../data/mock';
+import {
+  WalkerFilters,
+  useDebounced,
+  useWalkers,
+} from '../../src/api/hooks';
 import { colors, radius, spacing, type } from '../../theme';
 
-type FilterKey = 'free' | 'cheap' | 'near' | 'verified';
+type FilterKey = 'free' | 'cheap' | 'vake' | 'verified';
 
+/**
+ * The chips map one-to-one onto `GET /walkers` query parameters.
+ *
+ * The demo's "1 კმ-ში" chip is gone and a district chip stands in its place:
+ * distance needs coordinates, the database has none yet, and a chip that
+ * silently does nothing is worse than one that is honest about what it filters.
+ * See DEFERRED.md.
+ */
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'free', label: 'ახლა თავისუფალი' },
   { key: 'cheap', label: '₾15-მდე' },
-  { key: 'near', label: '1 კმ-ში' },
+  { key: 'vake', label: 'ვაკეში' },
   { key: 'verified', label: 'დადასტურებული' },
 ];
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState<FilterKey[]>([]);
-  const [filtering, setFiltering] = useState(false);
 
-  // Debounce so the list settles instead of flickering on every keystroke.
-  useEffect(() => {
-    if (!query) return;
-    setFiltering(true);
-    const timer = setTimeout(() => setFiltering(false), 250);
-    return () => clearTimeout(timer);
-  }, [query]);
+  // Debounces the query *key*, so re-typing a previous search is served from
+  // cache instead of refetching. Same 250 ms feel as before.
+  const debouncedQuery = useDebounced(query, 250);
 
-  const results = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return walkers.filter((w) => {
-      if (needle && !`${w.name} ${w.district}`.toLowerCase().includes(needle)) {
-        return false;
-      }
-      if (active.includes('free') && w.availability.kind !== 'now') return false;
-      if (active.includes('cheap') && w.price30 > 15) return false;
-      if (active.includes('near') && w.distanceKm > 1) return false;
-      if (active.includes('verified') && !w.verified) return false;
-      return true;
-    });
-  }, [query, active]);
+  const filters = useMemo<WalkerFilters>(
+    () => ({
+      q: debouncedQuery.trim() || undefined,
+      availableNow: active.includes('free') || undefined,
+      maxPrice30Tetri: active.includes('cheap') ? 1500 : undefined,
+      district: active.includes('vake') ? 'ვაკე' : undefined,
+      verified: active.includes('verified') || undefined,
+    }),
+    [debouncedQuery, active],
+  );
+
+  const { data, isPending, isError, isFetching, refetch } = useWalkers(filters);
+  const results = data?.items ?? [];
 
   const toggle = (key: FilterKey) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setActive((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
   };
 
@@ -67,6 +74,10 @@ export default function SearchScreen() {
     setActive([]);
     setQuery('');
   };
+
+  // Only the first load shows skeletons; a refetch keeps the old list visible
+  // so the screen does not blink on every keystroke.
+  const showSkeletons = isPending || (isFetching && results.length === 0);
 
   return (
     <Screen padded={false}>
@@ -106,7 +117,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {filtering ? (
+      {showSkeletons ? (
         <View style={styles.list}>
           <WalkerCardSkeleton />
           <WalkerCardSkeleton />
@@ -121,17 +132,30 @@ export default function SearchScreen() {
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
             results.length > 0 ? (
-              <Text style={styles.count}>{`${results.length} გამსეირნებელი`}</Text>
+              <Text style={styles.count}>
+                {`${results.length} გამსეირნებელი`}
+              </Text>
             ) : null
           }
           ListEmptyComponent={
-            <EmptyState
-              icon="search"
-              title="ვერაფერი მოიძებნა"
-              body="სცადე სხვა ფილტრი ან სხვა უბანი."
-              actionLabel="ფილტრების გასუფთავება"
-              onAction={reset}
-            />
+            isError ? (
+              <EmptyState
+                tone="error"
+                icon="wifi-off"
+                title="ვერ ჩაიტვირთა"
+                body="შეამოწმე ინტერნეტი და სცადე ხელახლა."
+                actionLabel="ხელახლა ცდა"
+                onAction={() => void refetch()}
+              />
+            ) : (
+              <EmptyState
+                icon="search"
+                title="ვერაფერი მოიძებნა"
+                body="სცადე სხვა ფილტრი ან სხვა უბანი."
+                actionLabel="ფილტრების გასუფთავება"
+                onAction={reset}
+              />
+            )
           }
           renderItem={({ item }) => (
             <WalkerCard

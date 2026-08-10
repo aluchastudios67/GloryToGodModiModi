@@ -8,8 +8,10 @@ import {
   Screen,
   SectionHeader,
   SegmentedControl,
+  Skeleton,
 } from '../../components';
-import { PHOTOS, myDogs } from '../../data/mock';
+import { PHOTOS } from '../../data/mock';
+import { useMyDogs } from '../../src/api/hooks';
 import { Role, useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { colors, pressed, spacing, type } from '../../theme';
@@ -18,6 +20,15 @@ const ROLES = [
   { value: 'owner' as const, label: 'მფლობელი' },
   { value: 'walker' as const, label: 'გამსეირნებელი' },
 ];
+
+/** "3 წლის" is a rendering of a real birth date, not a stored string. */
+function ageLabel(birthDate: string): string {
+  const born = new Date(birthDate);
+  const years = Math.floor(
+    (Date.now() - born.getTime()) / (365.25 * 24 * 3600 * 1000),
+  );
+  return `${Math.max(years, 0)} წლის`;
+}
 
 const SETTINGS: { icon: keyof typeof Feather.glyphMap; label: string }[] = [
   { icon: 'credit-card', label: 'გადახდის მეთოდები' },
@@ -32,6 +43,7 @@ export default function ProfileScreen() {
   const showToast = useAppStore((s) => s.showToast);
   const signOut = useAuthStore((s) => s.signOut);
   const me = useAuthStore((s) => s.user);
+  const { data: myDogs = [], isPending: dogsPending } = useMyDogs();
 
   const switchRole = (next: Role) => {
     setRole(next);
@@ -71,18 +83,36 @@ export default function ProfileScreen() {
       </View>
 
       <SectionHeader title="ჩემი ძაღლები" />
-      {myDogs.map((dog) => (
-        <Card key={dog.id} style={styles.dogCard}>
+      {dogsPending ? (
+        <Card style={styles.dogCard}>
           <View style={styles.userRow}>
-            <Avatar source={dog.photo} size={54} square />
+            <Skeleton width={54} height={54} rounded={20} />
             <View style={styles.userText}>
-              <Text style={styles.dogName}>{dog.name}</Text>
-              <Text style={styles.userMeta}>{`${dog.breed} · ${dog.age}`}</Text>
+              <Skeleton width="50%" height={15} rounded={8} />
+              <Skeleton width="70%" height={12} rounded={8} style={styles.skeletonLine} />
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textFaint} />
           </View>
         </Card>
-      ))}
+      ) : myDogs.length === 0 ? (
+        <Card style={styles.dogCard}>
+          <Text style={styles.userMeta}>ჯერ ძაღლი არ დაგიმატებია.</Text>
+        </Card>
+      ) : (
+        myDogs.map((dog) => (
+          <Card key={dog.id} style={styles.dogCard}>
+            <View style={styles.userRow}>
+              <Avatar source={dog.photoUrl ?? ''} size={54} square />
+              <View style={styles.userText}>
+                <Text style={styles.dogName}>{dog.name}</Text>
+                <Text style={styles.userMeta}>
+                  {`${dog.breed} · ${ageLabel(dog.birthDate)}`}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={colors.textFaint} />
+            </View>
+          </Card>
+        ))
+      )}
 
       <Card style={styles.settings}>
         {SETTINGS.map((item, index) => (
@@ -138,6 +168,7 @@ const styles = StyleSheet.create({
   },
 
   dogCard: { marginBottom: spacing.gap },
+  skeletonLine: { marginTop: 7 },
   dogName: { ...type.title, color: colors.text },
 
   settings: { marginTop: spacing.md, paddingVertical: 0 },

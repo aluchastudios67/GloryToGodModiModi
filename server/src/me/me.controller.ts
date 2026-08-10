@@ -8,7 +8,13 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  AddressDto,
+  DogDto,
+  OkDto,
+  WalkerProfileDto,
+} from './me.dto';
 import { AuthedUser, CurrentUser } from '../auth/auth.guard';
 import { ZodValidationPipe } from '../common/zod-pipe';
 import {
@@ -41,12 +47,14 @@ export class MeController {
 
   @Get('dogs')
   @ApiOperation({ summary: "The caller's dogs" })
+  @ApiOkResponse({ type: [DogDto] })
   async dogs(@CurrentUser() user: AuthedUser): Promise<DogView[]> {
     return this.me.listDogs(user.id);
   }
 
   @Post('dogs')
   @ApiOperation({ summary: 'Add a dog' })
+  @ApiOkResponse({ type: DogDto })
   async addDog(
     @CurrentUser() user: AuthedUser,
     @Body(new ZodValidationPipe(createDogSchema)) body: CreateDogInput,
@@ -56,6 +64,7 @@ export class MeController {
 
   @Patch('dogs/:id')
   @ApiOperation({ summary: 'Update a dog' })
+  @ApiOkResponse({ type: DogDto })
   async editDog(
     @CurrentUser() user: AuthedUser,
     @Param('id') id: string,
@@ -66,6 +75,7 @@ export class MeController {
 
   @Delete('dogs/:id')
   @ApiOperation({ summary: 'Soft-delete a dog' })
+  @ApiOkResponse({ type: OkDto })
   async removeDog(
     @CurrentUser() user: AuthedUser,
     @Param('id') id: string,
@@ -75,12 +85,14 @@ export class MeController {
 
   @Get('addresses')
   @ApiOperation({ summary: "The caller's addresses, door codes decrypted" })
+  @ApiOkResponse({ type: [AddressDto] })
   async addresses(@CurrentUser() user: AuthedUser): Promise<AddressView[]> {
     return this.me.listAddresses(user.id);
   }
 
   @Post('addresses')
   @ApiOperation({ summary: 'Add an address' })
+  @ApiOkResponse({ type: AddressDto })
   async addAddress(
     @CurrentUser() user: AuthedUser,
     @Body(new ZodValidationPipe(createAddressSchema)) body: CreateAddressInput,
@@ -90,6 +102,7 @@ export class MeController {
 
   @Get('walker-profile')
   @ApiOperation({ summary: 'The walker profile, or null' })
+  @ApiOkResponse({ type: WalkerProfileDto })
   async walkerProfile(
     @CurrentUser() user: AuthedUser,
   ): Promise<WalkerProfileView | null> {
@@ -98,6 +111,7 @@ export class MeController {
 
   @Put('walker-profile')
   @ApiOperation({ summary: 'Create or replace the walker profile' })
+  @ApiOkResponse({ type: WalkerProfileDto })
   async putWalkerProfile(
     @CurrentUser() user: AuthedUser,
     @Body(new ZodValidationPipe(walkerProfileSchema)) body: WalkerProfileInput,
@@ -107,6 +121,7 @@ export class MeController {
 
   @Patch('walker-profile/availability')
   @ApiOperation({ summary: 'Go available or unavailable' })
+  @ApiOkResponse({ type: WalkerProfileDto })
   async setAvailability(
     @CurrentUser() user: AuthedUser,
     @Body(new ZodValidationPipe(availabilitySchema)) body: AvailabilityInput,

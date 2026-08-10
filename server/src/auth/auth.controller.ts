@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { MeDto } from './auth.dto';
 import type { FastifyRequest } from 'fastify';
 import { ZodValidationPipe } from '../common/zod-pipe';
 import { HOUR, MINUTE, Throttle } from './auth-throttle.guard';
@@ -83,12 +84,14 @@ export class AuthController {
 
   @Get('me')
   @ApiOperation({ summary: 'The signed-in user' })
+  @ApiOkResponse({ type: MeDto })
   async me(@CurrentUser() user: AuthedUser): Promise<MeView> {
     return this.auth.meView(user.id);
   }
 
   @Patch('me')
   @ApiOperation({ summary: 'Update name or avatar' })
+  @ApiOkResponse({ type: MeDto })
   async updateMe(
     @CurrentUser() user: AuthedUser,
     @Body(new ZodValidationPipe(updateMeSchema)) body: UpdateMeInput,

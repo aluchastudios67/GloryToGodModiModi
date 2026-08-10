@@ -15,17 +15,24 @@ export function EmptyState({
   body,
   actionLabel,
   onAction,
+  tone = 'empty',
 }: {
   icon?: keyof typeof Feather.glyphMap;
   title: string;
   body?: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** `error` tints the illustration coral; the layout is otherwise identical. */
+  tone?: 'empty' | 'error';
 }) {
   return (
     <View style={styles.wrap}>
-      <View style={styles.illustration}>
-        <Feather name={icon} size={38} color={colors.primary} />
+      <View style={[styles.illustration, tone === 'error' && styles.illustrationError]}>
+        <Feather
+          name={icon}
+          size={38}
+          color={tone === 'error' ? colors.accent : colors.primary}
+        />
       </View>
       <Text style={styles.title}>{title}</Text>
       {body ? <Text style={styles.body}>{body}</Text> : null}
@@ -53,6 +60,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.lg,
   },
+  illustrationError: { backgroundColor: colors.accentSoft },
   title: { ...type.h2, color: colors.text, textAlign: 'center' },
   body: {
     ...type.body,

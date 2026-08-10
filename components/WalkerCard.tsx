@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Walker, km } from '../data/mock';
+import { gel, km } from '../data/mock';
+import type { Walker } from '../src/api/hooks';
 import { colors, sizes, spacing, type } from '../theme';
 import { Avatar, VerifiedCheck } from './Avatar';
 import { Card } from './Card';
@@ -8,7 +9,12 @@ import { PriceTag } from './PriceTag';
 import { Rating } from './Rating';
 import { StatusDot } from './StatusDot';
 
-/** A walker in the owner's "ახლოს არიან" list. The whole card books them. */
+/**
+ * A walker in the owner's list. The whole card books them.
+ *
+ * Takes the API's `PublicWalkerDto` shape directly — generated from the server's
+ * OpenAPI document — so a field rename upstream is a TypeScript error here.
+ */
 export function WalkerCard({
   walker,
   onPress,
@@ -16,19 +22,23 @@ export function WalkerCard({
   walker: Walker;
   onPress?: () => void;
 }) {
-  const { availability } = walker;
-  const isNow = availability.kind === 'now';
-  const statusLabel = isNow ? 'ახლა თავისუფალია' : availability.label;
+  const isNow = walker.isAvailableNow;
+  const statusLabel = isNow ? 'ახლა თავისუფალია' : 'ამჟამად დაკავებულია';
+
+  // Null until location lands, so the card simply omits it rather than
+  // rendering a placeholder distance nobody can trust.
+  const distance =
+    typeof walker.distanceKm === 'number' ? km(walker.distanceKm) : null;
 
   return (
     <Card
       onPress={onPress}
-      accessibilityLabel={`${walker.name}, ${walker.rating}, ${km(walker.distanceKm)}`}
+      accessibilityLabel={`${walker.name}, ${walker.rating}`}
       style={styles.card}
     >
       <View style={styles.row}>
         <Avatar
-          source={walker.photo}
+          source={walker.avatarUrl ?? ''}
           size={sizes.walkerAvatar}
           status={isNow ? 'online' : 'scheduled'}
         />
@@ -41,9 +51,12 @@ export function WalkerCard({
             {walker.verified ? <VerifiedCheck /> : null}
           </View>
 
+          {/* Wraps as a whole word on a narrow phone rather than clipping. */}
           <View style={styles.metaRow}>
-            <Rating rating={walker.rating} reviews={walker.reviews} />
-            <Text style={styles.distance}>{`• ${km(walker.distanceKm)}`}</Text>
+            <Rating rating={walker.rating} reviews={walker.reviewCount} />
+            {distance ? (
+              <Text style={styles.distance}>{`• ${distance}`}</Text>
+            ) : null}
           </View>
 
           <View style={styles.statusRow}>
@@ -58,11 +71,14 @@ export function WalkerCard({
           </View>
         </View>
 
-        <PriceTag amount={walker.price30} />
+        <PriceTag amount={Math.round(walker.price30Tetri / 100)} />
       </View>
     </Card>
   );
 }
+
+/** Exposed so screens format prices the same way the card does. */
+export const walkerPrice = (tetri: number) => gel(Math.round(tetri / 100));
 
 const styles = StyleSheet.create({
   card: { marginBottom: spacing.gap },
@@ -70,8 +86,6 @@ const styles = StyleSheet.create({
   middle: { flex: 1, marginLeft: 10, marginRight: 4 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   name: { ...type.title, color: colors.text, flexShrink: 1 },
-  // Fits on one line from 390pt up. On a 375pt SE the distance drops to a
-  // second line — a whole-word wrap, never a mid-word ellipsis.
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',

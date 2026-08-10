@@ -8,16 +8,35 @@ decision.
 
 ## Phase 3 — Profiles, dogs, walker search (partial)
 
-### Uploads and the whole app side are still outstanding
+### `POST /uploads/presign` is the one Phase 3 route not built
 
-Built and tested: walker search, dogs CRUD, addresses, walker profile and
-availability — 19 routes in `openapi.json`.
+Everything else is done: walker search, dogs, addresses, walker profile and
+availability on the server; generated types, TanStack Query hooks and real data
+in the home, search and profile screens.
 
-**Not built:** `POST /uploads/presign`, and the entire app side of the phase —
-`openapi-typescript` codegen with an `api:types` script wired into CI, TanStack
-Query hooks, and replacing the `walkers` / `myDogs` / `currentLocation` imports
-in `index.tsx`, `search.tsx` and `profile.tsx`. The screens still read
-`data/mock.ts`.
+Presign was skipped deliberately rather than stubbed — it needs real R2
+credentials and an S3 SigV4 signature, and an unverifiable signing
+implementation that *looks* finished is worse than an absent one. It needs
+`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and
+`CDN_BASE_URL` added to the env schema when it lands, and the standard approach
+is `@aws-sdk/s3-request-presigner` rather than hand-rolled signing.
+
+Consequently the acceptance criterion "a real photo uploads from the device to
+R2 and renders in the app" is **not met**.
+
+### The search screen's distance chip was replaced, not disabled
+
+`1 კმ-ში` is gone; `ვაკეში` (a district filter) stands in its place, because
+distance needs coordinates the database does not have. A chip that silently
+filters nothing is worse than one that is honest about what it does. Restore the
+distance chip when `Address.latitude/longitude` start being populated.
+
+### `currentLocation` is still a hardcoded string
+
+`app/(tabs)/index.tsx` still imports `currentLocation` from `data/mock.ts` for
+the header pill. There is no endpoint behind it — the user's district is not
+stored anywhere yet, and inventing one would have been scope creep. It becomes
+real when addresses drive the header.
 
 `/uploads/presign` was skipped deliberately rather than stubbed: it needs real
 R2 credentials and an S3 SigV4 signature, and shipping an unverifiable signing
